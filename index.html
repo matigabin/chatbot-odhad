@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Flow - Odhad nemovitosti</title>
+    <style>
+        body {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 450px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 15px 20px;
+            border-radius: 20px;
+            line-height: 1.4;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .bot-message {
+            background: #f1f3f4;
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+
+        .user-message {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .chat-button {
+            background: white;
+            border: 2px solid #4facfe;
+            color: #4facfe;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .chat-button:hover {
+            background: #4facfe;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .chat-input {
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 15px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .submit-button {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: transform 0.3s ease;
+        }
+
+        .submit-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .submit-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .back-button {
+            background: transparent;
+            border: 2px solid #ccc;
+            color: #666;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            align-self: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .back-button:hover {
+            border-color: #4facfe;
+            color: #4facfe;
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #666;
+            font-style: italic;
+            margin: 10px 0;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 3px;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: #666;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        .progress-bar {
+            height: 4px;
+            background: #e1e5e9;
+            margin: 0 20px 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            transition: width 0.5s ease;
+            border-radius: 2px;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        @media (max-width: 480px) {
+            .chat-container {
+                height: 100vh;
+                border-radius: 0;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            🏠 Odhad nemovitosti
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot-message">
+                👋 Ahoj, přemýšlíš, že bys prodal svoji nemovitost, ale ještě úplně nevíš, za kolik by to šlo? Udělejme rychlý odhad – zabere ti to půl minutky 😉
+                
+                <div class="button-group">
+                    <button class="chat-button" onclick="handleStart('yes')">Jasně, pojďme na to! 🚀</button>
+                    <button class="chat-button" onclick="handleStart('no')">Ne, jen se koukám 👀</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 'start';
+        let userData = {};
+        let stepCount = 0;
+        const totalSteps = 7;
+        let stepHistory = [];
+
+        function updateProgress() {
+            const progress = (stepCount / totalSteps) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        function addMessage(content, isBot = true, hasButtons = false) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isBot ? 'bot-message' : 'user-message'}`;
+            messageDiv.innerHTML = content;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function addBackButton() {
+            if (stepHistory.length > 0) {
+                return '<button class="back-button" onclick="goBack()">← Zpět</button>';
+            }
+            return '';
+        }
+
+        function saveStep(step, data = {}) {
+            stepHistory.push({
+                step: currentStep,
+                userData: {...userData},
+                stepCount: stepCount
+            });
+        }
+
+        function goBack() {
+            if (stepHistory.length === 0) return;
+            
+            const previousState = stepHistory.pop();
+            currentStep = previousState.step;
+            userData = previousState.userData;
+            stepCount = previousState.stepCount;
+            updateProgress();
+            
+            // Clear messages and restart from previous step
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.innerHTML = '';
+            
+            // Add initial message
+            addMessage(`👋 Ahoj, přemýšlíš, že bys prodal svoji nemovitost, ale ještě úplně nevíš, za kolik by to šlo? Udělejme rychlý odhad – zabere ti to půl minutky 😉
+                
+                <div class="button-group">
+                    <button class="chat-button" onclick="handleStart('yes')">Jasně, pojďme na to! 🚀</button>
+                    <button class="chat-button" onclick="handleStart('no')">Ne, jen se koukám 👀</button>
+                </div>`);
+            
+            // Replay steps
+            replaySteps();
+        }
+
+        function replaySteps() {
+            let delay = 500;
+            
+            if (stepCount >= 1) {
+                setTimeout(() => {
+                    addMessage('Jasně, pojďme na to! 🚀', false);
+                    setTimeout(() => askPropertyType(), 300);
+                }, delay);
+                delay += 800;
+            }
+            
+            if (userData.propertyType && stepCount >= 2) {
+                setTimeout(() => {
+                    const typeNames = {
+                        'byt': '🏢 Byt',
+                        'dum': '🏡 Dům', 
+                        'pozemek': '🌱 Pozemek',
+                        'jine': '➕ Něco jiného'
+                    };
+                    addMessage(typeNames[userData.propertyType], false);
+                    setTimeout(() => {
+                        if (userData.propertyType === 'pozemek') {
+                            askLocation();
+                        } else {
+                            askCondition();
+                        }
+                    }, 300);
+                }, delay);
+                delay += 800;
+            }
+            
+            if (userData.condition && stepCount >= 3) {
+                setTimeout(() => {
+                    const conditionNames = {
+                        'novostavba': '🏗️ Novostavba (do 5 let)',
+                        'dobry': '✨ Dobrý stav (po rekonstrukci)',
+                        'puvodni': '🔧 Původní stav',
+                        'rekonstrukce': '🚧 Potřebuje rekonstrukci'
+                    };
+                    addMessage(conditionNames[userData.condition], false);
+                    setTimeout(() => askLocation(), 300);
+                }, delay);
+                delay += 800;
+            }
+            
+            if (userData.location && stepCount >= 4) {
+                setTimeout(() => {
+                    addMessage(userData.location, false);
+                    setTimeout(() => askPriority(), 300);
+                }, delay);
+                delay += 800;
+            }
+            
+            if (userData.priority && stepCount >= 5) {
+                setTimeout(() => {
+                    const priorityNames = {
+                        'rychle': '⏱️ Prodat co nejrychleji',
+                        'cena': '💰 Prodat za co nejvyšší cenu',
+                        'oboji': '⚖️ Obojí – rychle a dobře'
+                    };
+                    addMessage(priorityNames[userData.priority], false);
+                    setTimeout(() => offerValue(), 300);
+                }, delay);
+                delay += 800;
+            }
+        }
+
+        function showTyping() {
+            const messagesContainer = document.getElementById('chatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'typing-indicator';
+            typingDiv.id = 'typing';
+            typingDiv.innerHTML = `
+                Bot píše...
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            `;
+            messagesContainer.appendChild(typingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hideTyping() {
+            const typing = document.getElementById('typing');
+            if (typing) typing.remove();
+        }
+
+        function handleStart(choice) {
+            if (choice === 'yes') {
+                addMessage('Jasně, pojďme na to! 🚀', false);
+                stepCount++;
+                updateProgress();
+                
+                setTimeout(() => {
+                    showTyping();
+                    setTimeout(() => {
+                        hideTyping();
+                        askPropertyType();
+                    }, 1500);
+                }, 500);
+            } else {
+                addMessage('Ne, jen se koukám 👀', false);
+                setTimeout(() => {
+                    showTyping();
+                    setTimeout(() => {
+                        hideTyping();
+                        showLeadMagnet();
+                    }, 1500);
+                }, 500);
+            }
+        }
+
+        function askPropertyType() {
+            currentStep = 'propertyType';
+            addMessage(`${addBackButton()}Co máš k prodeji?
+                
+                <div class="button-group">
+                    <button class="chat-button" onclick="handlePropertyType('byt')">🏢 Byt</button>
+                    <button class="chat-button" onclick="handlePropertyType('dum')">🏡 Dům</button>
+                    <button class="chat-button" onclick="handlePropertyType('pozemek')">🌱 Pozemek</button>
+                    <button class="chat-button" onclick="handlePropertyType('jine')">➕ Něco jiného</button>
+                </div>`);
+        }
+
+        function handlePropertyType(type) {
+            saveStep();
+            userData.propertyType = type;
+            const typeNames = {
+                'byt': '🏢 Byt',
+                'dum': '🏡 Dům', 
+                'pozemek': '🌱 Pozemek',
+                'jine': '➕ Něco jiného'
+            };
+            
+            addMessage(typeNames[type], false);
+            stepCount++;
+            updateProgress();
+            
+            setTimeout(() => {
+                showTyping();
+                setTimeout(() => {
+                    hideTyping();
+                    if (type === 'pozemek') {
+                        askLocation(); // Pro pozemky přeskočíme stav
+                    } else {
+                        askCondition();
+                    }
+                }, 1500);
+            }, 500);
+        }
+
+        function askCondition() {
+            currentStep = 'condition';
+            addMessage(`${addBackButton()}Dobře! A v jakém stavu je nemovitost?
+                
+                <div class="button-group">
+                    <button class="chat-button" onclick="handleCondition('novostavba')">🏗️ Novostavba (do 5 let)</button>
+                    <button class="chat-button" onclick="handleCondition('dobry')">✨ Dobrý stav (po rekonstrukci)</button>
+                    <button class="chat-button" onclick="handleCondition('puvodni')">🔧 Původní stav</button>
+                    <button class="chat-button" onclick="handleCondition('rekonstrukce')">🚧 Potřebuje rekonstrukci</button>
+                </div>`);
+        }
+
+        function handleCondition(condition) {
+            saveStep();
+            userData.condition = condition;
+            const conditionNames = {
+                'novostavba': '🏗️ Novostavba (do 5 let)',
+                'dobry': '✨ Dobrý stav (po rekonstrukci)',
+                'puvodni': '🔧 Původní stav',
+                'rekonstrukce': '🚧 Potřebuje rekonstrukci'
+            };
+            
+            addMessage(conditionNames[condition], false);
+            stepCount++;
+            updateProgress();
+            
+            setTimeout(() => {
+                showTyping();
+                setTimeout(() => {
+                    hideTyping();
+                    askLocation();
+                }, 1500);
+            }, 500);
+        }
+
+        function askLocation() {
+            currentStep = 'location';
+            addMessage(`${addBackButton()}Super! A kde se tvoje nemovitost nachází?
+                
+                <div class="input-group">
+                    <input type="text" class="chat-input" id="locationInput" placeholder="např. Havířov, Ostrava..." />
+                    <button class="submit-button" onclick="handleLocation()">Pokračovat</button>
+                </div>`);
+            
+            document.getElementById('locationInput').focus();
+        }
+
+        function handleLocation() {
+            const location = document.getElementById('locationInput').value.trim();
+            if (!location) return;
+            
+            saveStep();
+            userData.location = location;
+            addMessage(location, false);
+            stepCount++;
+            updateProgress();
+            
+            setTimeout(() => {
+                showTyping();
+                setTimeout(() => {
+                    hideTyping();
+                    askPriority();
+                }, 1500);
+            }, 500);
+        }
+
+        function askPriority() {
+            currentStep = 'priority';
+            addMessage(`${addBackButton()}Rozumím 👍 A teď důležitá otázka: Co je pro tebe při prodeji nejdůležitější?
+                
+                <div class="button-group">
+                    <button class="chat-button" onclick="handlePriority('rychle')">⏱️ Prodat co nejrychleji</button>
+                    <button class="chat-button" onclick="handlePriority('cena')">💰 Prodat za co nejvyšší cenu</button>
+                    <button class="chat-button" onclick="handlePriority('oboji')">⚖️ Obojí – rychle a dobře</button>
+                </div>`);
+        }
+
+        function handlePriority(priority) {
+            saveStep();
+            userData.priority = priority;
+            const priorityNames = {
+                'rychle': '⏱️ Prodat co nejrychleji',
+                'cena': '💰 Prodat za co nejvyšší cenu',
+                'oboji': '⚖️ Obojí – rychle a dobře'
+            };
+            
+            addMessage(priorityNames[priority], false);
+            stepCount++;
+            updateProgress();
+            
+            setTimeout(() => {
+                showTyping();
+                setTimeout(() => {
+                    hideTyping();
+                    offerValue();
+                }, 1500);
+            }, 500);
+        }
+
+        function offerValue() {
+            currentStep = 'offer';
+            addMessage(`${addBackButton()}Perfektní, díky! Na základě toho ti můžu:
+✅ poslat odhad tržní ceny zdarma
+✅ dát tipy, jak cenu ještě zvednout  
+✅ ukázat, jak dlouho se podobné nemovitosti v okolí prodávají
+
+👉 Chceš to vědět?
+                
+                <div class="button-group">
+                    <button class="chat-button" onclick="handleOffer('yes')">Ano, chci odhad 📊</button>
+                    <button class="chat-button" onclick="handleOffer('no')">Ne, stačí mi zatím info ℹ️</button>
+                </div>`);
+        }
+
+        function handleOffer(choice) {
+            if (choice === 'yes') {
+                saveStep();
+                addMessage('Ano, chci odhad 📊', false);
+                stepCount++;
+                updateProgress();
+                
+                setTimeout(() => {
+                    showTyping();
+                    setTimeout(() => {
+                        hideTyping();
+                        askDetailedLocation();
+                    }, 1500);
+                }, 500);
+            } else {
+                addMessage('Ne, stačí mi zatím info ℹ️', false);
+                setTimeout(() => {
+                    showTyping();
+                    setTimeout(() => {
+                        hideTyping();
+                        showAlternativeOffer();
+                    }, 1500);
+                }, 500);
+            }
+        }
+
+        function askDetailedLocation() {
+            currentStep = 'detailedLocation';
+            addMessage(`${addBackButton()}Pro přesný odhad potřebuji znát konkrétní adresu nebo alespoň ulici. Nemusíš se bát, data jsou v bezpečí 🔒
+                
+                <div class="input-group">
+                    <input type="text" class="chat-input" id="detailedLocationInput" placeholder="např. Hlavní třída 123, Havířov nebo jen Hlavní třída..." />
+                    <button class="submit-button" onclick="handleDetailedLocation()">Pokračovat</button>
+                </div>`);
+            
+            document.getElementById('detailedLocationInput').focus();
+        }
+
+        function handleDetailedLocation() {
+            const detailedLocation = document.getElementById('detailedLocationInput').value.trim();
+            if (!detailedLocation) return;
+            
+            saveStep();
+            userData.detailedLocation = detailedLocation;
+            addMessage(detailedLocation, false);
+            stepCount++;
+            updateProgress();
+            
+            setTimeout(() => {
+                showTyping();
+                setTimeout(() => {
+                    hideTyping();
+                    collectContact();
+                }, 1500);
+            }, 500);
+        }
+
+        function collectContact() {
+            currentStep = 'contact';
+            addMessage(`${addBackButton()}Super volba! Kam ti to mám poslat? Stačí telefon nebo email – co ti vyhovuje víc.
+                
+                <div class="input-group">
+                    <input type="tel" class="chat-input" id="phoneInput" placeholder="Telefon (volitelné)" />
+                    <input type="email" class="chat-input" id="emailInput" placeholder="Email (volitelné)" />
+                    <button class="submit-button" onclick="handleContact()">Odeslat odhad</button>
+                </div>`);
+        }
+
+        function handleContact() {
+            const phone = document.getElementById('phoneInput').value.trim();
+            const email = document.getElementById('emailInput').value.trim();
+            
+            if (!phone && !email) {
+                alert('Prosím vyplň alespoň telefon nebo email');
+                return;
+            }
+            
+            userData.phone = phone;
+            userData.email = email;
+            
+            const contactInfo = [];
+            if (phone) contactInfo.push(`📞 ${phone}`);
+            if (email) contactInfo.push(`📧 ${email}`);
+            
+            addMessage(contactInfo.join('<br>'), false);
+            stepCount++;
+            updateProgress();
+            
+            setTimeout(() => {
+                showTyping();
+                setTimeout(() => {
+                    hideTyping();
+                    showConfirmation();
+                }, 1500);
+            }, 500);
+        }
+
+        function showConfirmation() {
+            addMessage(`Díky! 🙌 Tvůj odhad připravím a ozvu se během krátké doby.
+Neboj, žádný spam – jen přesně to, co tě zajímá.
+
+Mimochodem – plánuješ prodávat:
+                
+                <div class="button-group">
+                    <button class="chat-button" onclick="handleTiming('3mesice')">během 3 měsíců ⏳</button>
+                    <button class="chat-button" onclick="handleTiming('rok')">do roka 📅</button>
+                    <button class="chat-button" onclick="handleTiming('zjistuju')">zatím jen zjišťuju možnosti 👀</button>
+                </div>`);
+        }
+
+        function handleTiming(timing) {
+            userData.timing = timing;
+            const timingNames = {
+                '3mesice': 'během 3 měsíců ⏳',
+                'rok': 'do roka 📅',
+                'zjistuju': 'zatím jen zjišťuju možnosti 👀'
+            };
+            
+            addMessage(timingNames[timing], false);
+            
+            setTimeout(() => {
+                showTyping();
+                setTimeout(() => {
+                    hideTyping();
+                    showFinalMessage();
+                }, 1500);
+            }, 500);
+        }
+
+        function showFinalMessage() {
+            addMessage(`Perfektní! 🎉 Máme všechno, co potřebujeme. 
+
+📊 Tvůj personalizovaný odhad ti pošleme co nejdříve
+💡 Přidáme i tipy, jak hodnotu nemovitosti zvýšit
+📈 Ukážeme ti aktuální situaci na trhu v ${userData.location}
+
+Děkujeme za důvěru! 🤝`);
+            
+            // Here you would normally send the data to your CRM
+            console.log('Lead data:', userData);
+        }
+
+        function showLeadMagnet() {
+            addMessage(`Ok, žádný stres! 😊 Tady máš zdarma ebook: "5 tipů, jak prodat nemovitost za víc". Chceš ho stáhnout?
+                
+                <div class="button-group">
+                    <button class="chat-button" onclick="downloadEbook()">Ano, chci ebook 📚</button>
+                    <button class="chat-button" onclick="showGoodbye()">Ne, díky</button>
+                </div>`);
+        }
+
+        function showAlternativeOffer() {
+            addMessage(`Rozumím! Nechceš zatím aspoň dostat orientační odhad přímo tady v chatu?
+                
+                <div class="button-group">
+                    <button class="chat-button" onclick="showQuickEstimate()">Ano, ukaž mi rychlý odhad</button>
+                    <button class="chat-button" onclick="showGoodbye()">Ne, díky</button>
+                </div>`);
+        }
+
+        function downloadEbook() {
+            addMessage('Ano, chci ebook 📚', false);
+            addMessage('Skvělé! 📚 Ebook "5 tipů, jak prodat nemovitost za víc" si můžeš stáhnout zde. Hodně štěstí s prodejem! 🍀');
+        }
+
+        function showQuickEstimate() {
+            addMessage('Ano, ukaž mi rychlý odhad', false);
+            
+            setTimeout(() => {
+                showTyping();
+                setTimeout(() => {
+                    hideTyping();
+                    addMessage(`Na základě lokality ${userData.location} a typu nemovitosti ${userData.propertyType} se podobné nemovitosti prodávají průměrně za:
+
+💰 Orientační rozmezí: 2,5 - 4,2 mil. Kč
+📊 Průměrná doba prodeje: 3-6 měsíců
+📈 Trend: Ceny rostou o 5-8% ročně
+
+Pro přesnější odhad bych potřeboval více detailů. Chceš pokračovat? 😊
+                    
+                    <div class="button-group">
+                        <button class="chat-button" onclick="continueToContact()">Ano, chci přesnější odhad 📊</button>
+                        <button class="chat-button" onclick="showGoodbye()">Ne, stačí mi to</button>
+                    </div>`);
+                }, 1500);
+            }, 500);
+        }
+
+        function continueToContact() {
+            addMessage('Ano, chci přesnější odhad 📊', false);
+            stepCount++;
+            updateProgress();
+            
+            setTimeout(() => {
+                showTyping();
+                setTimeout(() => {
+                    hideTyping();
+                    collectContact();
+                }, 1500);
+            }, 500);
+        }
+
+        function showGoodbye() {
+            addMessage('Díky za čas! Pokud si to rozmyslíš, jsme tu pro tebe. Hodně štěstí! 🍀');
+        }
+
+        // Allow Enter key to submit inputs
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                if (currentStep === 'location') {
+                    handleLocation();
+                } else if (currentStep === 'detailedLocation') {
+                    handleDetailedLocation();
+                } else if (currentStep === 'contact') {
+                    handleContact();
+                }
+            }
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9865ba777055b373',t:'MTc1OTA4ODU5Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
